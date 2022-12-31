@@ -1,0 +1,70 @@
+---
+title: "PA1_template"
+author: "me"
+date: "2022-12-30"
+output: html_document
+---
+#Loading and preprocessing the data
+```{r}
+library(ggplot2)
+library(dplyr)
+x <- read.csv("C:/Users/willi/OneDrive/Desktop/activity.csv")
+data <- as.Date(x$date)
+steps <- x %>% group_by(date) %>% summarize(sumsteps = sum(steps,na.rm = TRUE))
+hist(steps$sumsteps,ylim = c(0,35),xlab="steps")
+```
+
+##What is mean total number of steps taken per day?
+```{r}
+steps <- x %>% group_by(date) %>% summarize(sumsteps = sum(steps,na.rm = TRUE))
+hist(steps$sumsteps,ylim = c(0,35),xlab="steps")
+av <- mean(steps$sumsteps)
+med <- median(steps$sumsteps)
+print(paste("mean:",av))
+print(paste("median:",med))
+```
+##What is the average daily activity pattern?
+```{r}
+stepsbyinterval <- x %>% group_by(interval) %>% summarize(intervalsteps = mean(steps,na.rm = TRUE))
+plot(stepsbyinterval$intervalsteps~stepsbyinterval$interval,col = "blue",xlab = "Time",ylab = "Average Steps",type = "l")
+highest <- stepsbyinterval$interval[which.max(stepsbyinterval$intervalsteps)]
+print(paste("The 5-minute Interval is: ",highest))
+amount <- max(stepsbyinterval$intervalsteps)
+print(paste("The max steps is: ", amount))
+```
+##Imputing missing values
+```{r}
+num <- sum(is.na(x$steps))
+
+fill_in_missing <- x  
+for (i in 1:nrow(x)){
+  if(is.na(x$steps[i])){
+    fill_in_missing$steps[i]<- stepsbyinterval$intervalsteps[fill_in_missing$interval[i] == stepsbyinterval$interval]
+  }
+}
+
+steps_by_day <- fill_in_missing %>% group_by(date) %>% summarize(sumsteps = sum(steps, na.rm = TRUE))
+hist(steps_by_day$sumsteps,xlab = "steps",main = "Steps per Day Frequency")
+
+mean_day <- mean(steps_by_day$sumsteps)
+median_day <- median(steps_by_day$sumsteps)
+
+print(paste("mean:",mean_day))
+print(paste("median:",median_day))
+return("both the median and mean increased")
+```
+##Are there differences in activity patterns between weekdays and weekends?
+```{r}
+four <- fill_in_missing
+weekend <- subset(four,weekdays(as.POSIXlt(date))=="Sunday" |weekdays(as.POSIXlt(date))=="Saturday" )
+weekday <- subset(four,weekdays(as.POSIXlt(date)) != "Sunday" & weekdays(as.POSIXlt(date)) != "Saturday")
+
+g <- ggplot (weekend, aes(interval, steps))
+g <- g + geom_line()
+m <- ggplot (weekday, aes(interval, steps))
+m <- m + geom_line()
+plot(g)
+plot(m)
+print("There are more steps taken during the weekdays on average per day")
+
+```
